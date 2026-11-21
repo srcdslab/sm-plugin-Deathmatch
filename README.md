@@ -12,9 +12,9 @@ Written for 64-bit CS:S servers: pure SourcePawn, no extension. It only uses Sou
 - **Respawn**: a dead player respawns after `sm_dm_respawn_time`. A new player respawns once he has
   picked a team and a model.
 - **No round end**: the round never ends when a team is wiped out or when the round time runs out.
-  "Game commencing" still restarts the round. When `mp_timelimit` is reached, the plugin ends the
-  round itself, then the game goes to the next map. If the game has not changed map after
-  `mp_chattime` + 15 s, the plugin forces the change. With `sm_dm_round_timer_map_time 1` the HUD
+  "Game commencing" still restarts the round. When `mp_timelimit` is reached, the plugin fires a
+  `game_end` entity: scoreboard for `mp_chattime`, then the next map. If the map has not changed
+  after `mp_chattime` + 15 s, the plugin forces the change. With `sm_dm_round_timer_map_time 1` the HUD
   round timer shows the map time left.
 - **Random spawns**: on each spawn the player is moved to a point of
   `configs/deathmatch/spawns/<map>.cfg`. The plugin skips points that are blocked or that an

@@ -315,8 +315,9 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 	GameRules_SetPropFloat("m_fRoundStartTime", GetGameTime());
 }
 
-// mp_timelimit is only checked by the game when a round ends, which never happens here:
-// end the round ourselves once the time is up, and change the map if the game still does not.
+// The game does not end the map on mp_timelimit by itself here (tested 2026-11-21: after a round end at
+// the limit it just started a new round). Fire a game_end entity: scoreboard for mp_chattime, then the
+// next map. If the map still has not changed after mp_chattime + 15 s, force it.
 public Action Timer_CheckTimeLimit(Handle timer)
 {
 	if (!g_cvEnable.BoolValue || g_bMapEnding)
@@ -332,7 +333,12 @@ public Action Timer_CheckTimeLimit(Handle timer)
 		return Plugin_Continue;
 
 	g_bMapEnding = true;
-	CS_TerminateRound(5.0, CSRoundEnd_Draw, false);
+
+	int iGameEnd = CreateEntityByName("game_end");
+	if (iGameEnd != -1 && DispatchSpawn(iGameEnd))
+		AcceptEntityInput(iGameEnd, "EndGame");
+	else
+		CS_TerminateRound(5.0, CSRoundEnd_Draw, false);
 
 	float fChatTime = g_cvChatTime != null ? g_cvChatTime.FloatValue : 10.0;
 	CreateTimer(fChatTime + 15.0, Timer_ForceMapChange, _, TIMER_FLAG_NO_MAPCHANGE);
