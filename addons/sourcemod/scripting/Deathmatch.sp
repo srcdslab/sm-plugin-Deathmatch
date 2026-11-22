@@ -7,7 +7,7 @@
 #include <cstrike>
 #include <clientprefs>
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.1"
 #define CHAT_PREFIX "\x04[DM]\x01 "
 
 // Spawn points closer than this to an admin are the ones sm_dm_spawn_remove deletes
@@ -77,6 +77,9 @@ ConVar g_cvHpOnHeadshot;
 ConVar g_cvMaxHp;
 ConVar g_cvRemoveObjectives;
 ConVar g_cvMapTimer;
+ConVar g_cvGiveWeapons;
+ConVar g_cvFFA;
+ConVar g_cvInfiniteAmmo;
 ConVar g_cvChatTime;
 
 ArrayList g_aSpawns;
@@ -149,6 +152,9 @@ public void OnPluginStart()
 	g_cvMaxHp = CreateConVar("sm_dm_max_hp", "100", "Health cap for the kill rewards", _, true, 1.0);
 	g_cvRemoveObjectives = CreateConVar("sm_dm_remove_objectives", "1", "Remove bomb sites, hostages and rescue zones, 0 = no/1 = yes", _, true, 0.0, true, 1.0);
 	g_cvMapTimer = CreateConVar("sm_dm_round_timer_map_time", "1", "Show the map time left in the round timer (needs mp_timelimit), 0 = no/1 = yes", _, true, 0.0, true, 1.0);
+	g_cvGiveWeapons = CreateConVar("sm_dm_give_weapons", "1", "Give weapons on spawn, offer the weapon menu and block buying, 0 = leave weapons to another plugin (GunGame)/1 = on", _, true, 0.0, true, 1.0);
+	g_cvInfiniteAmmo = CreateConVar("sm_dm_infinite_ammo", "0", "Keep the reserve ammo of guns topped up (grenades excluded), 0 = off/1 = on", _, true, 0.0, true, 1.0);
+	g_cvFFA = CreateConVar("sm_dm_ffa", "0", "Free for all: every other player is an enemy when a spawn point is picked, 0 = off/1 = on", _, true, 0.0, true, 1.0);
 
 	AutoExecConfig(true);
 
@@ -288,7 +294,7 @@ public Action CS_OnTerminateRound(float &delay, CSRoundEndReason &reason)
 
 public Action CS_OnBuyCommand(int client, const char[] weapon)
 {
-	return g_cvEnable.BoolValue ? Plugin_Handled : Plugin_Continue;
+	return g_cvEnable.BoolValue && g_cvGiveWeapons.BoolValue ? Plugin_Handled : Plugin_Continue;
 }
 
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
@@ -457,6 +463,14 @@ void Frame_PlayerSpawned(int userid)
 	SetEntProp(client, Prop_Send, "m_ArmorValue", g_cvArmor.IntValue);
 	SetEntProp(client, Prop_Send, "m_bHasHelmet", g_cvHelmet.BoolValue ? 1 : 0);
 
+	if (g_cvGiveWeapons.BoolValue)
+		GiveSpawnWeapons(client);
+
+	StartProtection(client);
+}
+
+void GiveSpawnWeapons(int client)
+{
 	if (IsFakeClient(client))
 		GiveRandomWeapons(client);
 	else if (g_sPrimary[client][0] && g_sSecondary[client][0])
@@ -472,8 +486,6 @@ void Frame_PlayerSpawned(int userid)
 		GiveGrenades(client);
 		ShowMainMenu(client);
 	}
-
-	StartProtection(client);
 }
 
 void MoveToRandomSpawn(int client)
@@ -482,7 +494,6 @@ void MoveToRandomSpawn(int client)
 	if (!iCount)
 		return;
 
-	int iTeam = GetClientTeam(client);
 	float fNow = GetGameTime();
 	float fMinDistance = g_cvSpawnMinDistance.FloatValue;
 	bool bCheckVisibility = g_cvSpawnVisibility.BoolValue;
@@ -504,8 +515,8 @@ void MoveToRandomSpawn(int client)
 		if (IsSpawnBlocked(spawn.origin, client))
 			continue;
 
-		float fClosest = ClosestEnemyDistance(spawn.origin, iTeam);
-		bool bSeen = bCheckVisibility && IsSeenByEnemy(spawn.origin, iTeam);
+		float fClosest = ClosestEnemyDistance(spawn.origin, client);
+		bool bSeen = bCheckVisibility && IsSeenByEnemy(spawn.origin, client);
 
 		if (!bSeen && fClosest >= fMinDistance)
 		{
@@ -552,14 +563,23 @@ public bool TraceFilter_WorldOnly(int entity, int contentsMask)
 	return entity == 0;
 }
 
-float ClosestEnemyDistance(const float fOrigin[3], int iTeam)
+// An alive player in a team who fights client: any other player in FFA, the other team otherwise
+bool IsEnemy(int client, int i)
+{
+	if (i == client || !IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) < CS_TEAM_T)
+		return false;
+
+	return g_cvFFA.BoolValue || GetClientTeam(i) != GetClientTeam(client);
+}
+
+float ClosestEnemyDistance(const float fOrigin[3], int client)
 {
 	float fClosest = 999999.0;
 	float fPos[3];
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) == iTeam || GetClientTeam(i) < CS_TEAM_T)
+		if (!IsEnemy(client, i))
 			continue;
 
 		GetClientAbsOrigin(i, fPos);
@@ -571,7 +591,7 @@ float ClosestEnemyDistance(const float fOrigin[3], int iTeam)
 	return fClosest;
 }
 
-bool IsSeenByEnemy(const float fOrigin[3], int iTeam)
+bool IsSeenByEnemy(const float fOrigin[3], int client)
 {
 	float fHead[3];
 	fHead = fOrigin;
@@ -580,7 +600,7 @@ bool IsSeenByEnemy(const float fOrigin[3], int iTeam)
 	float fEye[3];
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) == iTeam || GetClientTeam(i) < CS_TEAM_T)
+		if (!IsEnemy(client, i))
 			continue;
 
 		GetClientEyePosition(i, fEye);
@@ -593,6 +613,37 @@ bool IsSeenByEnemy(const float fOrigin[3], int iTeam)
 	}
 
 	return false;
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Infinite ammo                                                                                  */
+/* ---------------------------------------------------------------------------------------------- */
+
+// Reserve kept for guns: without it bots empty their pistols, switch to the knife and the match stalls
+#define INFINITE_AMMO_RESERVE 120
+
+// Called from Event_WeaponFire
+void RefillReserveAmmo(int client)
+{
+	if (!g_cvEnable.BoolValue || !g_cvInfiniteAmmo.BoolValue || !IsPlayerAlive(client))
+		return;
+
+	int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	if (weapon <= MaxClients || !IsValidEntity(weapon))
+		return;
+
+	// The knife has no ammo type
+	int iAmmoType = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
+	if (iAmmoType < 0 || GetEntProp(client, Prop_Send, "m_iAmmo", _, iAmmoType) >= INFINITE_AMMO_RESERVE)
+		return;
+
+	// Grenades are counted in m_iAmmo: refilling them would hand out endless nades
+	char sClass[32];
+	GetEntityClassname(weapon, sClass, sizeof(sClass));
+	if (StrContains(sClass, "grenade") != -1 || StrEqual(sClass, "weapon_flashbang"))
+		return;
+
+	SetEntProp(client, Prop_Send, "m_iAmmo", INFINITE_AMMO_RESERVE, _, iAmmoType);
 }
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -648,8 +699,13 @@ void RemoveProtection(int client)
 public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (client && g_fProtectedUntil[client] > 0.0)
+	if (!client)
+		return;
+
+	if (g_fProtectedUntil[client] > 0.0)
 		RemoveProtection(client);
+
+	RefillReserveAmmo(client);
 }
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
@@ -855,7 +911,7 @@ public Action Timer_RemoveDroppedWeapon(Handle timer, int ref)
 
 public Action Command_Guns(int client, int args)
 {
-	if (!client || !g_cvEnable.BoolValue)
+	if (!client || !g_cvEnable.BoolValue || !g_cvGiveWeapons.BoolValue)
 		return Plugin_Handled;
 
 	g_eMode[client] = Choice_Menu;
