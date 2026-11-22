@@ -1,0 +1,102 @@
+"Phrases"
+{
+	"Menu Title"
+	{
+		"en"		"Deathmatch weapons"
+		"fr"		"Armes du deathmatch"
+	}
+	"New Weapons"
+	{
+		"en"		"New weapons"
+		"fr"		"Nouvelles armes"
+	}
+	"Same Weapons"
+	{
+		"en"		"Same weapons"
+		"fr"		"Mêmes armes"
+	}
+	"Same Weapons Always"
+	{
+		"en"		"Same weapons every time"
+		"fr"		"Toujours les mêmes armes"
+	}
+	"Random Weapons"
+	{
+		"en"		"Random weapons"
+		"fr"		"Armes au hasard"
+	}
+	"Primary Title"
+	{
+		"en"		"Primary weapon"
+		"fr"		"Arme principale"
+	}
+	"Secondary Title"
+	{
+		"en"		"Secondary weapon"
+		"fr"		"Arme secondaire"
+	}
+	"Limit Reached"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} (limit reached)"
+		"fr"		"{1} (limite atteinte)"
+	}
+	"AWP Limit"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"Your team already has {1} AWP, you get a {2} instead."
+		"fr"		"Ton équipe a déjà {1} AWP, tu reçois un {2} à la place."
+	}
+	"Weapons Next Spawn"
+	{
+		"en"		"Your new weapons will be given on your next spawn."
+		"fr"		"Tes nouvelles armes seront données à ta prochaine réapparition."
+	}
+	"Guns Command"
+	{
+		"en"		"Type !guns to get the weapon menu back."
+		"fr"		"Tape !guns pour retrouver le menu des armes."
+	}
+	"Spawn Added"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Spawn point #{1} added ({2} in total, not saved yet)."
+		"fr"		"Point d'apparition n°{1} ajouté ({2} au total, pas encore sauvegardé)."
+	}
+	"Spawn Removed"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Spawn point #{1} removed ({2} left, not saved yet)."
+		"fr"		"Point d'apparition n°{1} supprimé (il en reste {2}, pas encore sauvegardé)."
+	}
+	"No Spawn Nearby"
+	{
+		"#format"	"{1:d}"
+		"en"		"No spawn point within {1} units."
+		"fr"		"Aucun point d'apparition à moins de {1} unités."
+	}
+	"Spawns Saved"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"{1} spawn points saved to {2}."
+		"fr"		"{1} points d'apparition sauvegardés dans {2}."
+	}
+	"Spawns Save Failed"
+	{
+		"#format"	"{1:s}"
+		"en"		"Could not write {1}."
+		"fr"		"Impossible d'écrire {1}."
+	}
+	"Spawns Loaded"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"{1} spawn points loaded for {2}."
+		"fr"		"{1} points d'apparition chargés pour {2}."
+	}
+	"Spawns Shown"
+	{
+		"#format"	"{1:d}"
+		"en"		"Showing {1} spawn points for 10 seconds."
+		"fr"		"Affichage de {1} points d'apparition pendant 10 secondes."
+	}
+}
