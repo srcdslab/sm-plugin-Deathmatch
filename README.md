@@ -90,6 +90,7 @@ Admins with the `config` flag can edit the points in game:
 | `sm_dm_remove_objectives` | `1` | Remove bomb sites, hostages and rescue zones |
 | `sm_dm_round_timer_map_time` | `1` | Show the map time left in the round timer |
 | `sm_dm_give_weapons` | `1` | Give weapons on spawn, offer the weapon menu and block buying; `0` leaves weapons to another plugin such as GunGame |
+| `sm_dm_infinite_ammo` | `0` | Keep the reserve ammo of guns topped up (grenades excluded) |
 | `sm_dm_ffa` | `0` | Free for all: every other player counts as an enemy when a spawn point is picked |
 
 ## License

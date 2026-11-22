@@ -79,6 +79,7 @@ ConVar g_cvRemoveObjectives;
 ConVar g_cvMapTimer;
 ConVar g_cvGiveWeapons;
 ConVar g_cvFFA;
+ConVar g_cvInfiniteAmmo;
 ConVar g_cvChatTime;
 
 ArrayList g_aSpawns;
@@ -152,6 +153,7 @@ public void OnPluginStart()
 	g_cvRemoveObjectives = CreateConVar("sm_dm_remove_objectives", "1", "Remove bomb sites, hostages and rescue zones, 0 = no/1 = yes", _, true, 0.0, true, 1.0);
 	g_cvMapTimer = CreateConVar("sm_dm_round_timer_map_time", "1", "Show the map time left in the round timer (needs mp_timelimit), 0 = no/1 = yes", _, true, 0.0, true, 1.0);
 	g_cvGiveWeapons = CreateConVar("sm_dm_give_weapons", "1", "Give weapons on spawn, offer the weapon menu and block buying, 0 = leave weapons to another plugin (GunGame)/1 = on", _, true, 0.0, true, 1.0);
+	g_cvInfiniteAmmo = CreateConVar("sm_dm_infinite_ammo", "0", "Keep the reserve ammo of guns topped up (grenades excluded), 0 = off/1 = on", _, true, 0.0, true, 1.0);
 	g_cvFFA = CreateConVar("sm_dm_ffa", "0", "Free for all: every other player is an enemy when a spawn point is picked, 0 = off/1 = on", _, true, 0.0, true, 1.0);
 
 	AutoExecConfig(true);
@@ -614,6 +616,37 @@ bool IsSeenByEnemy(const float fOrigin[3], int client)
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+/* Infinite ammo                                                                                  */
+/* ---------------------------------------------------------------------------------------------- */
+
+// Reserve kept for guns: without it bots empty their pistols, switch to the knife and the match stalls
+#define INFINITE_AMMO_RESERVE 120
+
+// Called from Event_WeaponFire
+void RefillReserveAmmo(int client)
+{
+	if (!g_cvEnable.BoolValue || !g_cvInfiniteAmmo.BoolValue || !IsPlayerAlive(client))
+		return;
+
+	int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	if (weapon <= MaxClients || !IsValidEntity(weapon))
+		return;
+
+	// The knife has no ammo type
+	int iAmmoType = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
+	if (iAmmoType < 0 || GetEntProp(client, Prop_Send, "m_iAmmo", _, iAmmoType) >= INFINITE_AMMO_RESERVE)
+		return;
+
+	// Grenades are counted in m_iAmmo: refilling them would hand out endless nades
+	char sClass[32];
+	GetEntityClassname(weapon, sClass, sizeof(sClass));
+	if (StrContains(sClass, "grenade") != -1 || StrEqual(sClass, "weapon_flashbang"))
+		return;
+
+	SetEntProp(client, Prop_Send, "m_iAmmo", INFINITE_AMMO_RESERVE, _, iAmmoType);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 /* Spawn protection                                                                               */
 /* ---------------------------------------------------------------------------------------------- */
 
@@ -666,8 +699,13 @@ void RemoveProtection(int client)
 public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (client && g_fProtectedUntil[client] > 0.0)
+	if (!client)
+		return;
+
+	if (g_fProtectedUntil[client] > 0.0)
 		RemoveProtection(client);
+
+	RefillReserveAmmo(client);
 }
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
