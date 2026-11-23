@@ -7,7 +7,7 @@
 #include <cstrike>
 #include <clientprefs>
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2"
 #define CHAT_PREFIX "\x04[DM]\x01 "
 
 // Spawn points closer than this to an admin are the ones sm_dm_spawn_remove deletes
@@ -661,7 +661,10 @@ void StartProtection(int client)
 	// Alpha is ignored under RENDER_NORMAL
 	int r, g, b, a;
 	GetEntityRenderColor(client, r, g, b, a);
-	g_iSavedAlpha[client] = a;
+	// A respawn while still protected (round restart, gg warmup end) must keep the first saved alpha,
+	// saving 120 here left players transparent until the map change (seen on the GG server, 23/11)
+	if (!g_bProtectionVisual[client])
+		g_iSavedAlpha[client] = a;
 	g_bProtectionVisual[client] = true;
 	SetEntityRenderMode(client, RENDER_TRANSCOLOR);
 	SetEntityRenderColor(client, r, g, b, 120);
